@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, AlertCircle, Play, Map, Zap } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Loader2, AlertCircle, Play, Map, Zap, ChevronDown, Settings } from "lucide-react"
 
 interface MapJob {
   id: string
@@ -21,6 +23,11 @@ interface MapJob {
   config: {
     name: string
     search?: string
+    ignoreSitemap?: boolean
+    sitemapOnly?: boolean
+    allowSubdomains?: boolean
+    limit?: number
+    timeout?: number
   }
 }
 
@@ -35,6 +42,14 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
   const [jobName, setJobName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  
+  // Advanced options
+  const [limit, setLimit] = useState(5000)
+  const [timeout, setTimeout] = useState(30)
+  const [ignoreSitemap, setIgnoreSitemap] = useState(false)
+  const [sitemapOnly, setSitemapOnly] = useState(false)
+  const [includeSubdomains, setIncludeSubdomains] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,6 +75,11 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
         config: {
           name: jobName || `Map ${new URL(url).hostname}`,
           search: search || undefined,
+          limit: limit,
+          timeout: timeout,
+          ignoreSitemap: ignoreSitemap,
+          sitemapOnly: sitemapOnly,
+          allowSubdomains: includeSubdomains,
         },
       }
 
@@ -88,6 +108,12 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
       setUrl("")
       setSearch("")
       setJobName("")
+      setLimit(5000)
+      setTimeout(30)
+      setIgnoreSitemap(false)
+      setSitemapOnly(false)
+      setIncludeSubdomains(false)
+      setShowAdvanced(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start mapping job")
     } finally {
@@ -158,6 +184,87 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
                 Filter URLs that contain specific keywords or topics
               </div>
             </div>
+
+            {/* Advanced Options */}
+            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-2 p-0 h-auto">
+                  <Settings className="h-4 w-4" />
+                  <span>Advanced Options</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="limit">URL Limit</Label>
+                    <Input
+                      id="limit"
+                      type="number"
+                      value={limit}
+                      onChange={(e) => setLimit(Number(e.target.value))}
+                      min={1}
+                      max={5000}
+                      placeholder="5000"
+                    />
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Maximum number of URLs to return (1-5000)
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="timeout">Timeout (seconds)</Label>
+                    <Input
+                      id="timeout"
+                      type="number"
+                      value={timeout}
+                      onChange={(e) => setTimeout(Number(e.target.value))}
+                      min={1}
+                      max={300}
+                      placeholder="30"
+                    />
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Request timeout in seconds (1-300)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="include-subdomains"
+                      checked={includeSubdomains}
+                      onCheckedChange={(checked) => setIncludeSubdomains(checked as boolean)}
+                    />
+                    <Label htmlFor="include-subdomains" className="text-sm font-normal">
+                      Include subdomains
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="ignore-sitemap"
+                      checked={ignoreSitemap}
+                      onCheckedChange={(checked) => setIgnoreSitemap(checked as boolean)}
+                    />
+                    <Label htmlFor="ignore-sitemap" className="text-sm font-normal">
+                      Ignore sitemap.xml
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="sitemap-only"
+                      checked={sitemapOnly}
+                      onCheckedChange={(checked) => setSitemapOnly(checked as boolean)}
+                    />
+                    <Label htmlFor="sitemap-only" className="text-sm font-normal">
+                      Use sitemap.xml only
+                    </Label>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             <div className="flex items-center justify-end pt-4">
               <Button type="submit" disabled={isLoading || !url}>

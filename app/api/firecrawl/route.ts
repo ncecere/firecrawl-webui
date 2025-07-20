@@ -10,6 +10,7 @@ interface JobConfig {
   allowBackwardCrawling?: boolean
   allowExternalContentLinks?: boolean
   ignoreSitemap?: boolean
+  sitemapOnly?: boolean
   location?: string
   tbs?: string
   filter?: string
@@ -292,22 +293,65 @@ async function processCrawlJob(job: Job, apiEndpoint: string) {
 }
 
 async function processMapJob(job: Job, apiEndpoint: string) {
-  const params = new URLSearchParams({ url: job.url! })
+  // Build v1 map options
+  const mapOptions: any = {
+    url: job.url,
+  }
+
+  // Add v1 map-specific options
   if (job.config.search) {
-    params.append("search", job.config.search)
+    mapOptions.search = job.config.search
   }
 
-  const response = await fetch(`${apiEndpoint}/v0/map?${params}`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Map API error: ${response.status} ${response.statusText}`)
+  if (job.config.ignoreSitemap !== undefined) {
+    mapOptions.ignoreSitemap = job.config.ignoreSitemap
   }
 
-  const result = await response.json()
-  return result.links || result.data || result
+  if (job.config.allowSubdomains !== undefined) {
+    mapOptions.includeSubdomains = job.config.allowSubdomains
+  }
+
+  if (job.config.limit !== undefined) {
+    mapOptions.limit = job.config.limit
+  }
+
+  if (job.config.timeout !== undefined) {
+    mapOptions.timeout = job.config.timeout * 1000 // Convert to milliseconds
+  }
+
+  // Add sitemapOnly option if provided
+  if (job.config.sitemapOnly !== undefined) {
+    mapOptions.sitemapOnly = job.config.sitemapOnly
+  }
+
+  // Set a timeout for the fetch request (2 minutes for map operations)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes
+
+  try {
+    const response = await fetch(`${apiEndpoint}/v1/map`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mapOptions),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Map API error: ${response.status} ${response.statusText} - ${errorText}`)
+    }
+
+    const result = await response.json()
+    return result.links || result.data || result
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Map request timed out after 2 minutes')
+    }
+    throw error
+  }
 }
 
 async function processBatchJob(job: Job, apiEndpoint: string) {
