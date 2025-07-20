@@ -43,8 +43,43 @@ export default function FirecrawlFrontend() {
   }, [])
 
   useEffect(() => {
-    // Save jobs to localStorage whenever jobs change
-    localStorage.setItem("firecrawl-jobs", JSON.stringify(jobs))
+    // Save jobs to localStorage with size limit and cleanup
+    try {
+      // Keep only the most recent 50 jobs to prevent storage overflow
+      const jobsToStore = jobs.slice(0, 50)
+      
+      // For completed jobs with large data, store only metadata and first few results
+      const optimizedJobs = jobsToStore.map(job => {
+        if (job.status === 'completed' && job.data && job.data.length > 5) {
+          return {
+            ...job,
+            data: job.data.slice(0, 5), // Keep only first 5 results for preview
+            _originalDataLength: job.data.length // Track original length
+          }
+        }
+        return job
+      })
+      
+      localStorage.setItem("firecrawl-jobs", JSON.stringify(optimizedJobs))
+    } catch (error) {
+      console.warn('Failed to save jobs to localStorage:', error)
+      // If storage is full, clear old jobs and try again
+      if (error instanceof Error && error.name === 'QuotaExceededError') {
+        try {
+          // Keep only the most recent 20 jobs and retry
+          const recentJobs = jobs.slice(0, 20).map(job => ({
+            ...job,
+            data: job.data ? job.data.slice(0, 3) : undefined, // Keep even fewer results
+            _originalDataLength: job.data?.length
+          }))
+          localStorage.setItem("firecrawl-jobs", JSON.stringify(recentJobs))
+        } catch (retryError) {
+          console.error('Failed to save even reduced jobs:', retryError)
+          // As last resort, clear all stored jobs
+          localStorage.removeItem("firecrawl-jobs")
+        }
+      }
+    }
   }, [jobs])
 
   useEffect(() => {
@@ -331,7 +366,10 @@ export default function FirecrawlFrontend() {
                     </Button>
                   </div>
                   <CardDescription>
-                    {selectedJobData.config.name} • {selectedJobData.data?.length || 0} items
+                    {selectedJobData.config.name} • {(selectedJobData as any)._originalDataLength || selectedJobData.data?.length || 0} items
+                    {(selectedJobData as any)._originalDataLength && (selectedJobData as any)._originalDataLength > (selectedJobData.data?.length || 0) && 
+                      ` (showing first ${selectedJobData.data?.length || 0})`
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

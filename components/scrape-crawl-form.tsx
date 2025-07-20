@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, AlertCircle, Play, Globe, Link, Layers } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Loader2, AlertCircle, Play, Globe, Link, Layers, ChevronDown, Settings, Filter, Zap, Brain, Route } from "lucide-react"
 
 interface ScrapingConfig {
   name: string
@@ -22,6 +23,37 @@ interface ScrapingConfig {
   allowBackwardCrawling?: boolean
   allowExternalContentLinks?: boolean
   ignoreSitemap?: boolean
+  // v1 API new options
+  onlyMainContent?: boolean
+  maxAge?: number
+  headers?: Record<string, string>
+  mobile?: boolean
+  skipTlsVerification?: boolean
+  timeout?: number
+  parsePDF?: boolean
+  removeBase64Images?: boolean
+  blockAds?: boolean
+  proxy?: string
+  storeInCache?: boolean
+  zeroDataRetention?: boolean
+  // LLM extraction options
+  llmExtraction?: {
+    enabled: boolean
+    prompt?: string
+    systemPrompt?: string
+  }
+  // Batch specific options
+  maxConcurrency?: number
+  ignoreInvalidURLs?: boolean
+  // Crawl-specific v1 options
+  excludePaths?: string[]
+  includePaths?: string[]
+  maxDepth?: number
+  maxDiscoveryDepth?: number
+  ignoreQueryParameters?: boolean
+  crawlEntireDomain?: boolean
+  allowSubdomains?: boolean
+  delay?: number
 }
 
 interface ScrapingJob {
@@ -135,6 +167,32 @@ export default function ScrapeCrawlForm({ type, apiEndpoint, onJobCreate }: Scra
         allowBackwardCrawling: false,
         allowExternalContentLinks: false,
         ignoreSitemap: false,
+        onlyMainContent: false,
+        maxAge: 0,
+        mobile: false,
+        skipTlsVerification: false,
+        timeout: 30,
+        parsePDF: false,
+        removeBase64Images: false,
+        blockAds: false,
+        storeInCache: false,
+        zeroDataRetention: false,
+        llmExtraction: {
+          enabled: false,
+          prompt: "",
+          systemPrompt: "",
+        },
+        maxConcurrency: 5,
+        ignoreInvalidURLs: false,
+        // Reset crawl-specific options
+        excludePaths: [],
+        includePaths: [],
+        maxDepth: 10,
+        maxDiscoveryDepth: 10,
+        ignoreQueryParameters: false,
+        crawlEntireDomain: false,
+        allowSubdomains: false,
+        delay: 0,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start job")
@@ -370,6 +428,405 @@ https://example.com/page3`}
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Advanced Options */}
+            <div className="space-y-4">
+              {/* Content Filtering */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Filter className="h-4 w-4" />
+                      <span>Content Filtering</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="only-main-content"
+                        checked={config.onlyMainContent || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, onlyMainContent: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="only-main-content" className="text-sm">
+                        Extract only main content
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="parse-pdf"
+                        checked={config.parsePDF || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, parsePDF: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="parse-pdf" className="text-sm">
+                        Parse PDF files
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="remove-base64-images"
+                        checked={config.removeBase64Images || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, removeBase64Images: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="remove-base64-images" className="text-sm">
+                        Remove base64 images
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="block-ads"
+                        checked={config.blockAds || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, blockAds: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="block-ads" className="text-sm">
+                        Block advertisements
+                      </Label>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Performance & Behavior */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="h-4 w-4" />
+                      <span>Performance & Behavior</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="timeout">Timeout (seconds)</Label>
+                      <Input
+                        id="timeout"
+                        type="number"
+                        min="1"
+                        max="300"
+                        value={config.timeout || 30}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, timeout: Number.parseInt(e.target.value) || 30 }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="max-age">Max Age (seconds)</Label>
+                      <Input
+                        id="max-age"
+                        type="number"
+                        min="0"
+                        value={config.maxAge || 0}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, maxAge: Number.parseInt(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="mobile"
+                        checked={config.mobile || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, mobile: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="mobile" className="text-sm">
+                        Use mobile viewport
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="skip-tls"
+                        checked={config.skipTlsVerification || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, skipTlsVerification: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="skip-tls" className="text-sm">
+                        Skip TLS verification
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="store-in-cache"
+                        checked={config.storeInCache || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, storeInCache: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="store-in-cache" className="text-sm">
+                        Store in cache
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="zero-data-retention"
+                        checked={config.zeroDataRetention || false}
+                        onCheckedChange={(checked) =>
+                          setConfig((prev) => ({ ...prev, zeroDataRetention: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="zero-data-retention" className="text-sm">
+                        Zero data retention
+                      </Label>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* LLM Extraction */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Brain className="h-4 w-4" />
+                      <span>LLM Extraction</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="llm-extraction-enabled"
+                      checked={config.llmExtraction?.enabled || false}
+                      onCheckedChange={(checked) =>
+                        setConfig((prev) => ({ 
+                          ...prev, 
+                          llmExtraction: { 
+                            ...prev.llmExtraction, 
+                            enabled: checked as boolean 
+                          } 
+                        }))
+                      }
+                    />
+                    <Label htmlFor="llm-extraction-enabled" className="text-sm">
+                      Enable LLM extraction
+                    </Label>
+                  </div>
+                  
+                  {config.llmExtraction?.enabled && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="llm-prompt">Extraction Prompt</Label>
+                        <Textarea
+                          id="llm-prompt"
+                          value={config.llmExtraction?.prompt || ""}
+                          onChange={(e) =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              llmExtraction: {
+                                ...prev.llmExtraction,
+                                enabled: prev.llmExtraction?.enabled || false,
+                                prompt: e.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="Extract the main points from this content..."
+                          rows={3}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="llm-system-prompt">System Prompt (optional)</Label>
+                        <Textarea
+                          id="llm-system-prompt"
+                          value={config.llmExtraction?.systemPrompt || ""}
+                          onChange={(e) =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              llmExtraction: {
+                                ...prev.llmExtraction,
+                                enabled: prev.llmExtraction?.enabled || false,
+                                systemPrompt: e.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="You are a helpful assistant that extracts information..."
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Crawl Options */}
+              {type === "crawl" && (
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Route className="h-4 w-4" />
+                        <span>Crawl Options</span>
+                      </div>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="max-depth">Max Depth</Label>
+                        <Input
+                          id="max-depth"
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={config.maxDepth || 10}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, maxDepth: Number.parseInt(e.target.value) || 10 }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="max-discovery-depth">Max Discovery Depth</Label>
+                        <Input
+                          id="max-discovery-depth"
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={config.maxDiscoveryDepth || 10}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, maxDiscoveryDepth: Number.parseInt(e.target.value) || 10 }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="delay">Delay (milliseconds)</Label>
+                        <Input
+                          id="delay"
+                          type="number"
+                          min="0"
+                          max="10000"
+                          value={config.delay || 0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, delay: Number.parseInt(e.target.value) || 0 }))}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="crawl-entire-domain"
+                          checked={config.crawlEntireDomain || false}
+                          onCheckedChange={(checked) =>
+                            setConfig((prev) => ({ ...prev, crawlEntireDomain: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="crawl-entire-domain" className="text-sm">
+                          Crawl entire domain
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="allow-subdomains"
+                          checked={config.allowSubdomains || false}
+                          onCheckedChange={(checked) =>
+                            setConfig((prev) => ({ ...prev, allowSubdomains: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="allow-subdomains" className="text-sm">
+                          Allow subdomains
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="ignore-query-parameters"
+                          checked={config.ignoreQueryParameters || false}
+                          onCheckedChange={(checked) =>
+                            setConfig((prev) => ({ ...prev, ignoreQueryParameters: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="ignore-query-parameters" className="text-sm">
+                          Ignore query parameters
+                        </Label>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="include-paths">Include Paths (comma-separated)</Label>
+                        <Textarea
+                          id="include-paths"
+                          value={config.includePaths?.join(", ") || ""}
+                          onChange={(e) =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              includePaths: e.target.value
+                                .split(",")
+                                .map((path) => path.trim())
+                                .filter(Boolean),
+                            }))
+                          }
+                          placeholder="/blog, /docs, /products"
+                          rows={2}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="exclude-paths">Exclude Paths (comma-separated)</Label>
+                        <Textarea
+                          id="exclude-paths"
+                          value={config.excludePaths?.join(", ") || ""}
+                          onChange={(e) =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              excludePaths: e.target.value
+                                .split(",")
+                                .map((path) => path.trim())
+                                .filter(Boolean),
+                            }))
+                          }
+                          placeholder="/admin, /private, /temp"
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
+              {/* Batch Options */}
+              {type === "batch" && (
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Settings className="h-4 w-4" />
+                        <span>Batch Options</span>
+                      </div>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="max-concurrency">Max Concurrency</Label>
+                        <Input
+                          id="max-concurrency"
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={config.maxConcurrency || 5}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, maxConcurrency: Number.parseInt(e.target.value) || 5 }))}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="ignore-invalid-urls"
+                          checked={config.ignoreInvalidURLs || false}
+                          onCheckedChange={(checked) =>
+                            setConfig((prev) => ({ ...prev, ignoreInvalidURLs: checked as boolean }))
+                          }
+                        />
+                        <Label htmlFor="ignore-invalid-urls" className="text-sm">
+                          Ignore invalid URLs
+                        </Label>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
 
             <div className="flex items-center justify-end pt-4">

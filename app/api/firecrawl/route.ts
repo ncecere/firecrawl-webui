@@ -15,6 +15,43 @@ interface JobConfig {
   filter?: string
   scrapeResults?: boolean
   search?: string
+  // v1 API new options
+  onlyMainContent?: boolean
+  maxAge?: number
+  headers?: Record<string, string>
+  mobile?: boolean
+  skipTlsVerification?: boolean
+  timeout?: number
+  parsePDF?: boolean
+  removeBase64Images?: boolean
+  blockAds?: boolean
+  proxy?: string
+  storeInCache?: boolean
+  zeroDataRetention?: boolean
+  // LLM extraction options
+  llmExtraction?: {
+    enabled: boolean
+    prompt?: string
+    systemPrompt?: string
+  }
+  // Batch specific options
+  maxConcurrency?: number
+  ignoreInvalidURLs?: boolean
+  // Crawl-specific v1 options
+  excludePaths?: string[]
+  includePaths?: string[]
+  maxDepth?: number
+  maxDiscoveryDepth?: number
+  ignoreQueryParameters?: boolean
+  crawlEntireDomain?: boolean
+  allowSubdomains?: boolean
+  delay?: number
+  webhook?: {
+    url: string
+    headers?: Record<string, string>
+    metadata?: Record<string, any>
+    events?: string[]
+  }
 }
 
 interface Job {
@@ -22,6 +59,7 @@ interface Job {
   type: "scrape" | "crawl" | "map" | "batch"
   url?: string
   urls?: string[]
+  query?: string
   status: "pending" | "running" | "completed" | "failed"
   data?: any[]
   error?: string
@@ -117,54 +155,140 @@ async function processJob(jobId: string, apiEndpoint: string) {
 async function processScrapeJob(job: Job, apiEndpoint: string) {
   const scrapeOptions = buildScrapeOptions(job.config)
 
-  const response = await fetch(`${apiEndpoint}/v0/scrape`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: job.url,
-      ...scrapeOptions,
-    }),
-  })
+  // Set a longer timeout for the fetch request (5 minutes)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
 
-  if (!response.ok) {
-    throw new Error(`Scrape API error: ${response.status} ${response.statusText}`)
+  try {
+    const response = await fetch(`${apiEndpoint}/v1/scrape`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: job.url,
+        ...scrapeOptions,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Scrape API error: ${response.status} ${response.statusText} - ${errorText}`)
+    }
+
+    const result = await response.json()
+    return result.data || result
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out after 5 minutes')
+    }
+    throw error
   }
-
-  const result = await response.json()
-  return result.data || result
 }
 
 async function processCrawlJob(job: Job, apiEndpoint: string) {
   const scrapeOptions = buildScrapeOptions(job.config)
-  const crawlOptions = {
+  
+  // Build v1 crawl options
+  const crawlOptions: any = {
+    url: job.url,
     limit: job.config.limit || 10,
-    allowBackwardCrawling: job.config.allowBackwardCrawling,
-    allowExternalContentLinks: job.config.allowExternalContentLinks,
-    ignoreSitemap: job.config.ignoreSitemap,
+    scrapeOptions,
   }
 
-  const response = await fetch(`${apiEndpoint}/v0/crawl`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url: job.url,
-      ...crawlOptions,
-      scrapeOptions,
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Crawl API error: ${response.status} ${response.statusText}`)
+  // v1 crawl-specific options
+  if (job.config.excludePaths && job.config.excludePaths.length > 0) {
+    crawlOptions.excludePaths = job.config.excludePaths
   }
 
-  const result = await response.json()
-
-  // If it returns a job ID, poll for results
-  if (result.jobId) {
-    return await pollCrawlJob(result.jobId, apiEndpoint)
+  if (job.config.includePaths && job.config.includePaths.length > 0) {
+    crawlOptions.includePaths = job.config.includePaths
   }
 
-  return result.data || result
+  if (job.config.maxDepth !== undefined) {
+    crawlOptions.maxDepth = job.config.maxDepth
+  }
+
+  if (job.config.maxDiscoveryDepth !== undefined) {
+    crawlOptions.maxDiscoveryDepth = job.config.maxDiscoveryDepth
+  }
+
+  if (job.config.ignoreSitemap !== undefined) {
+    crawlOptions.ignoreSitemap = job.config.ignoreSitemap
+  }
+
+  if (job.config.ignoreQueryParameters !== undefined) {
+    crawlOptions.ignoreQueryParameters = job.config.ignoreQueryParameters
+  }
+
+  if (job.config.allowBackwardCrawling !== undefined) {
+    crawlOptions.allowBackwardLinks = job.config.allowBackwardCrawling
+  }
+
+  if (job.config.crawlEntireDomain !== undefined) {
+    crawlOptions.crawlEntireDomain = job.config.crawlEntireDomain
+  }
+
+  if (job.config.allowExternalContentLinks !== undefined) {
+    crawlOptions.allowExternalLinks = job.config.allowExternalContentLinks
+  }
+
+  if (job.config.allowSubdomains !== undefined) {
+    crawlOptions.allowSubdomains = job.config.allowSubdomains
+  }
+
+  if (job.config.delay !== undefined) {
+    crawlOptions.delay = job.config.delay
+  }
+
+  if (job.config.maxConcurrency !== undefined) {
+    crawlOptions.maxConcurrency = job.config.maxConcurrency
+  }
+
+  if (job.config.webhook) {
+    crawlOptions.webhook = job.config.webhook
+  }
+
+  if (job.config.zeroDataRetention !== undefined) {
+    crawlOptions.zeroDataRetention = job.config.zeroDataRetention
+  }
+
+  // Set a longer timeout for the fetch request (5 minutes)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
+
+  try {
+    const response = await fetch(`${apiEndpoint}/v1/crawl`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(crawlOptions),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Crawl API error: ${response.status} ${response.statusText} - ${errorText}`)
+    }
+
+    const result = await response.json()
+
+    // v1 API returns a job ID that we need to poll
+    if (result.id) {
+      return await pollCrawlJob(result.id, apiEndpoint)
+    }
+
+    return result.data || result
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Crawl request timed out after 5 minutes')
+    }
+    throw error
+  }
 }
 
 async function processMapJob(job: Job, apiEndpoint: string) {
@@ -188,35 +312,68 @@ async function processMapJob(job: Job, apiEndpoint: string) {
 
 async function processBatchJob(job: Job, apiEndpoint: string) {
   const scrapeOptions = buildScrapeOptions(job.config)
-
-  const response = await fetch(`${apiEndpoint}/v0/batch/scrape`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      urls: job.urls,
-      ...scrapeOptions,
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Batch API error: ${response.status} ${response.statusText}`)
+  
+  // Add batch-specific options
+  const batchOptions: any = {
+    urls: job.urls,
+    ...scrapeOptions,
   }
 
-  const result = await response.json()
-
-  // If it returns a job ID, poll for results
-  if (result.jobId) {
-    return await pollCrawlJob(result.jobId, apiEndpoint)
+  if (job.config.maxConcurrency) {
+    batchOptions.maxConcurrency = job.config.maxConcurrency
   }
 
-  return result.data || result
+  if (job.config.ignoreInvalidURLs !== undefined) {
+    batchOptions.ignoreInvalidURLs = job.config.ignoreInvalidURLs
+  }
+
+  // Set a longer timeout for the fetch request (5 minutes)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes
+
+  try {
+    const response = await fetch(`${apiEndpoint}/v1/batch/scrape`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batchOptions),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Batch API error: ${response.status} ${response.statusText} - ${errorText}`)
+    }
+
+    const result = await response.json()
+
+    // v1 API returns a job ID that we need to poll
+    if (result.id) {
+      return await pollBatchJob(result.id, apiEndpoint)
+    }
+
+    return result.data || result
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Batch request timed out after 5 minutes')
+    }
+    throw error
+  }
 }
 
 function buildScrapeOptions(config: JobConfig) {
   const options: any = {}
 
+  // Output formats
   if (config.formats && config.formats.length > 0) {
     options.formats = config.formats
+  }
+
+  // Content filtering
+  if (config.onlyMainContent !== undefined) {
+    options.onlyMainContent = config.onlyMainContent
   }
 
   if (config.includeTags && config.includeTags.length > 0) {
@@ -227,8 +384,79 @@ function buildScrapeOptions(config: JobConfig) {
     options.excludeTags = config.excludeTags
   }
 
+  // Performance and behavior settings
+  if (config.maxAge !== undefined) {
+    options.maxAge = config.maxAge
+  }
+
+  if (config.headers && Object.keys(config.headers).length > 0) {
+    options.headers = config.headers
+  }
+
   if (config.waitFor && config.waitFor > 0) {
-    options.waitFor = config.waitFor * 1000
+    options.waitFor = config.waitFor * 1000 // Convert to milliseconds
+  }
+
+  if (config.mobile !== undefined) {
+    options.mobile = config.mobile
+  }
+
+  if (config.skipTlsVerification !== undefined) {
+    options.skipTlsVerification = config.skipTlsVerification
+  }
+
+  if (config.timeout !== undefined) {
+    options.timeout = config.timeout * 1000 // Convert to milliseconds
+  }
+
+  // Document processing
+  if (config.parsePDF !== undefined) {
+    options.parsePDF = config.parsePDF
+  }
+
+  if (config.removeBase64Images !== undefined) {
+    options.removeBase64Images = config.removeBase64Images
+  }
+
+  if (config.blockAds !== undefined) {
+    options.blockAds = config.blockAds
+  }
+
+  // Advanced options
+  if (config.proxy) {
+    options.proxy = config.proxy
+  }
+
+  if (config.storeInCache !== undefined) {
+    options.storeInCache = config.storeInCache
+  }
+
+  if (config.zeroDataRetention !== undefined) {
+    options.zeroDataRetention = config.zeroDataRetention
+  }
+
+  // LLM extraction
+  if (config.llmExtraction?.enabled) {
+    // Add 'extract' format to the formats array if LLM extraction is enabled
+    if (!options.formats) {
+      options.formats = ['markdown']
+    }
+    if (!options.formats.includes('extract')) {
+      options.formats.push('extract')
+    }
+    
+    // Set up extraction options
+    options.extract = {
+      schema: {}, // Empty schema for general extraction
+    }
+    
+    if (config.llmExtraction.prompt) {
+      options.extract.prompt = config.llmExtraction.prompt
+    }
+    
+    if (config.llmExtraction.systemPrompt) {
+      options.extract.systemPrompt = config.llmExtraction.systemPrompt
+    }
   }
 
   return options
@@ -240,7 +468,7 @@ async function pollCrawlJob(crawlJobId: string, apiEndpoint: string) {
 
   while (attempts < maxAttempts) {
     try {
-      const response = await fetch(`${apiEndpoint}/v0/crawl/status/${crawlJobId}`)
+      const response = await fetch(`${apiEndpoint}/v1/crawl/${crawlJobId}`)
 
       if (!response.ok) {
         throw new Error(`Failed to check crawl status: ${response.status}`)
@@ -262,7 +490,38 @@ async function pollCrawlJob(crawlJobId: string, apiEndpoint: string) {
     }
   }
 
-  throw new Error("Job timed out")
+  throw new Error("Crawl job timed out")
+}
+
+async function pollBatchJob(batchJobId: string, apiEndpoint: string) {
+  const maxAttempts = 120 // 10 minutes with 5-second intervals
+  let attempts = 0
+
+  while (attempts < maxAttempts) {
+    try {
+      const response = await fetch(`${apiEndpoint}/v1/batch/scrape/${batchJobId}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to check batch status: ${response.status}`)
+      }
+
+      const status = await response.json()
+
+      if (status.status === "completed") {
+        return status.data || []
+      } else if (status.status === "failed") {
+        throw new Error(status.error || "Batch job failed")
+      }
+
+      // Wait 5 seconds before next poll
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      attempts++
+    } catch (error) {
+      throw error
+    }
+  }
+
+  throw new Error("Batch job timed out")
 }
 
 export async function GET(request: NextRequest) {
