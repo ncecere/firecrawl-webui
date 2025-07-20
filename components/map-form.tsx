@@ -188,13 +188,15 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
             {/* Advanced Options */}
             <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2 p-0 h-auto">
-                  <Settings className="h-4 w-4" />
-                  <span>Advanced Options</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+                <Button variant="outline" className="w-full justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Settings className="h-4 w-4" />
+                    <span>Advanced Options</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 mt-4">
+              <CollapsibleContent className="space-y-4 pt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="limit">URL Limit</Label>
