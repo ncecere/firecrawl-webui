@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Globe, Link, Layers, Map, Eye, Download, RefreshCw } from "lucide-react"
+import { Loader2, Globe, Link, Layers, Map, Eye, Download, RefreshCw, Archive } from "lucide-react"
 import ScrapeCrawlForm from "@/components/scrape-crawl-form"
 import MapForm from "@/components/map-form"
+import JSZip from "jszip"
+import { saveAs } from "file-saver"
 
 interface ScrapingJob {
   id: string
@@ -123,6 +125,7 @@ export default function FirecrawlFrontend() {
     localStorage.removeItem("firecrawl-jobs")
   }
 
+
   const runningJobs = jobs.filter((job) => job.status === "running" || job.status === "pending")
   const completedJobs = jobs.filter((job) => job.status === "completed")
   const failedJobs = jobs.filter((job) => job.status === "failed")
@@ -184,6 +187,142 @@ export default function FirecrawlFrontend() {
         status: "failed",
         error: error instanceof Error ? error.message : "Failed to retry job",
       })
+    }
+  }
+
+  // Utility functions for zip file generation
+  const sanitizeFileName = (name: string): string => {
+    return name
+      .replace(/[<>:"/\\|?*]/g, '_') // Replace invalid chars
+      .replace(/\s+/g, '_') // Replace spaces
+      .replace(/_+/g, '_') // Remove duplicate underscores
+      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+      .substring(0, 100) // Limit length
+  }
+
+  const extractDomain = (url: string): string => {
+    try {
+      const domain = new URL(url).hostname.replace(/^www\./, '')
+      return sanitizeFileName(domain.replace(/\./g, '-'))
+    } catch {
+      return 'unknown-domain'
+    }
+  }
+
+  const extractPageSlug = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      const pathname = urlObj.pathname
+      const slug = pathname.split('/').filter(Boolean).pop() || 'index'
+      return sanitizeFileName(slug)
+    } catch {
+      return 'unknown-page'
+    }
+  }
+
+  const formatDate = (date: Date): string => {
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}-${month}-${year}`
+  }
+
+  const getFileExtension = (format: string): string => {
+    const extensions: Record<string, string> = {
+      'markdown': '.md',
+      'html': '.html',
+      'rawHtml': '.html',
+      'screenshot': '.png'
+    }
+    return extensions[format] || '.txt'
+  }
+
+  const generateFileName = (startingUrl: string, pageUrl: string, format: string, index?: number): string => {
+    const domain = extractDomain(startingUrl)
+    const pageSlug = extractPageSlug(pageUrl)
+    const date = formatDate(new Date())
+    const extension = getFileExtension(format)
+    
+    const baseName = `${domain}_${pageSlug}_${date}`
+    const indexSuffix = index !== undefined ? `_${index}` : ''
+    
+    return `${baseName}${indexSuffix}${extension}`
+  }
+
+  const downloadZipFiles = async (job: ScrapingJob) => {
+    if (!job.data || job.data.length === 0) return
+
+    // Warning for large jobs
+    if (job.data.length > 100) {
+      const confirmed = confirm(
+        `This job has ${job.data.length} pages. Generating a zip file may take some time and use significant memory. Continue?`
+      )
+      if (!confirmed) return
+    }
+
+    try {
+      const zip = new JSZip()
+      const selectedFormats = job.config.formats || ['markdown']
+      const startingUrl = job.url || job.urls?.[0] || 'unknown-site'
+      
+      // Track file names to handle duplicates
+      const fileNameCounts: Record<string, number> = {}
+
+      for (let i = 0; i < job.data.length; i++) {
+        const item = job.data[i]
+        const pageUrl = item.metadata?.sourceURL || item.url || `page-${i}`
+
+        for (const format of selectedFormats) {
+          let content = ''
+          let fileName = generateFileName(startingUrl, pageUrl, format)
+
+          // Handle duplicate file names
+          if (fileNameCounts[fileName]) {
+            fileNameCounts[fileName]++
+            const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'))
+            const ext = fileName.substring(fileName.lastIndexOf('.'))
+            fileName = `${nameWithoutExt}_${fileNameCounts[fileName]}${ext}`
+          } else {
+            fileNameCounts[fileName] = 1
+          }
+
+          // Extract content based on format
+          switch (format) {
+            case 'markdown':
+              content = item.markdown || ''
+              break
+            case 'html':
+              content = item.html || ''
+              break
+            case 'rawHtml':
+              content = item.rawHtml || ''
+              break
+            case 'screenshot':
+              if (item.screenshot) {
+                // Handle base64 screenshot data
+                const base64Data = item.screenshot.replace(/^data:image\/[a-z]+;base64,/, '')
+                zip.file(fileName, base64Data, { base64: true })
+                continue
+              }
+              break
+            default:
+              content = JSON.stringify(item[format] || '', null, 2)
+          }
+
+          if (content) {
+            zip.file(fileName, content)
+          }
+        }
+      }
+
+      // Generate and download the zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const zipFileName = `${job.config.name || 'firecrawl-results'}_${formatDate(new Date())}.zip`
+      saveAs(zipBlob, sanitizeFileName(zipFileName))
+
+    } catch (error) {
+      console.error('Error generating zip file:', error)
+      alert('Failed to generate zip file. Please try downloading as JSON instead.')
     }
   }
 
@@ -338,9 +477,14 @@ export default function FirecrawlFrontend() {
                               <Button size="sm" variant="ghost" onClick={() => setSelectedJob(job.id)}>
                                 <Eye className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="ghost" onClick={() => downloadResults(job)}>
+                              <Button size="sm" variant="ghost" onClick={() => downloadResults(job)} title="Download JSON">
                                 <Download className="h-3 w-3" />
                               </Button>
+                              {(job.type === "scrape" || job.type === "crawl" || job.type === "batch") && job.config.formats && (
+                                <Button size="sm" variant="ghost" onClick={() => downloadZipFiles(job)} title="Download ZIP">
+                                  <Archive className="h-3 w-3" />
+                                </Button>
+                              )}
                             </>
                           )}
                           {job.status === "failed" && (
