@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface HeaderProps {
   apiEndpoint: string
@@ -40,6 +41,7 @@ export function Header({ apiEndpoint, onApiEndpointChange, runningJobsCount }: H
                 placeholder="http://localhost:3002"
               />
             </div>
+            <ThemeToggle />
             {runningJobsCount > 0 && (
               <Badge variant="secondary" className="flex items-center space-x-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
