@@ -175,7 +175,17 @@ async function processScrapeJob(job: Job, apiEndpoint: string) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Scrape API error: ${response.status} ${response.statusText} - ${errorText}`)
+      
+      // Handle specific error cases with more user-friendly messages
+      if (response.status === 408) {
+        throw new Error(`Request timed out. The website may be slow to respond or the content is complex. Try reducing the page limit or wait time settings.`)
+      } else if (response.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait a moment before trying again.`)
+      } else if (response.status >= 500) {
+        throw new Error(`Firecrawl service is temporarily unavailable. Please try again later.`)
+      } else {
+        throw new Error(`Scrape failed: ${response.status} ${response.statusText} - ${errorText}`)
+      }
     }
 
     const result = await response.json()
@@ -272,7 +282,17 @@ async function processCrawlJob(job: Job, apiEndpoint: string) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Crawl API error: ${response.status} ${response.statusText} - ${errorText}`)
+      
+      // Handle specific error cases with more user-friendly messages
+      if (response.status === 408) {
+        throw new Error(`Crawl request timed out. Try reducing the page limit or crawl depth settings.`)
+      } else if (response.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait a moment before trying again.`)
+      } else if (response.status >= 500) {
+        throw new Error(`Firecrawl service is temporarily unavailable. Please try again later.`)
+      } else {
+        throw new Error(`Crawl failed: ${response.status} ${response.statusText} - ${errorText}`)
+      }
     }
 
     const result = await response.json()
@@ -340,7 +360,17 @@ async function processMapJob(job: Job, apiEndpoint: string) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Map API error: ${response.status} ${response.statusText} - ${errorText}`)
+      
+      // Handle specific error cases with more user-friendly messages
+      if (response.status === 408) {
+        throw new Error(`Map request timed out. Try reducing the URL limit or timeout settings.`)
+      } else if (response.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait a moment before trying again.`)
+      } else if (response.status >= 500) {
+        throw new Error(`Firecrawl service is temporarily unavailable. Please try again later.`)
+      } else {
+        throw new Error(`Map failed: ${response.status} ${response.statusText} - ${errorText}`)
+      }
     }
 
     const result = await response.json()
@@ -387,7 +417,17 @@ async function processBatchJob(job: Job, apiEndpoint: string) {
 
     if (!response.ok) {
       const errorText = await response.text()
-      throw new Error(`Batch API error: ${response.status} ${response.statusText} - ${errorText}`)
+      
+      // Handle specific error cases with more user-friendly messages
+      if (response.status === 408) {
+        throw new Error(`Batch request timed out. Try reducing the number of URLs or timeout settings.`)
+      } else if (response.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait a moment before trying again.`)
+      } else if (response.status >= 500) {
+        throw new Error(`Firecrawl service is temporarily unavailable. Please try again later.`)
+      } else {
+        throw new Error(`Batch scrape failed: ${response.status} ${response.statusText} - ${errorText}`)
+      }
     }
 
     const result = await response.json()

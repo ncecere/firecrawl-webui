@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Loader2, AlertCircle, Play, Globe, Link, Layers, ChevronDown, Settings, Filter, Zap, Brain, Route } from "lucide-react"
+import { Job } from "@/types/jobs"
 
 interface ScrapingConfig {
   name: string
@@ -23,7 +24,6 @@ interface ScrapingConfig {
   allowBackwardCrawling?: boolean
   allowExternalContentLinks?: boolean
   ignoreSitemap?: boolean
-  // v1 API new options
   onlyMainContent?: boolean
   maxAge?: number
   headers?: Record<string, string>
@@ -36,16 +36,13 @@ interface ScrapingConfig {
   proxy?: string
   storeInCache?: boolean
   zeroDataRetention?: boolean
-  // LLM extraction options
   llmExtraction?: {
     enabled: boolean
     prompt?: string
     systemPrompt?: string
   }
-  // Batch specific options
   maxConcurrency?: number
   ignoreInvalidURLs?: boolean
-  // Crawl-specific v1 options
   excludePaths?: string[]
   includePaths?: string[]
   maxDepth?: number
@@ -56,22 +53,10 @@ interface ScrapingConfig {
   delay?: number
 }
 
-interface ScrapingJob {
-  id: string
-  type: "scrape" | "crawl" | "batch"
-  url?: string
-  urls?: string[]
-  status: "pending" | "running" | "completed" | "failed"
-  data?: any[]
-  error?: string
-  createdAt: string
-  config: ScrapingConfig
-}
-
 interface ScrapeCrawlFormProps {
   type: "scrape" | "crawl" | "batch"
   apiEndpoint: string
-  onJobCreate: (job: ScrapingJob) => void
+  onJobCreate: (job: Job) => void
 }
 
 export default function ScrapeCrawlForm({ type, apiEndpoint, onJobCreate }: ScrapeCrawlFormProps) {
@@ -128,10 +113,10 @@ export default function ScrapeCrawlForm({ type, apiEndpoint, onJobCreate }: Scra
 
       const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-      const newJob: ScrapingJob = {
+      const newJob: Job = {
         id: jobId,
         ...jobData,
-        status: "pending",
+        status: "pending" as const,
         createdAt: new Date().toISOString(),
       }
 

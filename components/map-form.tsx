@@ -11,29 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Loader2, AlertCircle, Play, Map, Zap, ChevronDown, Settings } from "lucide-react"
-
-interface MapJob {
-  id: string
-  type: "map"
-  url: string
-  status: "pending" | "running" | "completed" | "failed"
-  data?: any[]
-  error?: string
-  createdAt: string
-  config: {
-    name: string
-    search?: string
-    ignoreSitemap?: boolean
-    sitemapOnly?: boolean
-    allowSubdomains?: boolean
-    limit?: number
-    timeout?: number
-  }
-}
+import { Job } from "@/types/jobs"
 
 interface MapFormProps {
   apiEndpoint: string
-  onJobCreate: (job: MapJob) => void
+  onJobCreate: (job: Job) => void
 }
 
 export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
@@ -66,11 +48,11 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
 
       const jobId = `map_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-      const newJob: MapJob = {
+      const newJob: Job = {
         id: jobId,
-        type: "map",
+        type: "map" as const,
         url,
-        status: "pending",
+        status: "pending" as const,
         createdAt: new Date().toISOString(),
         config: {
           name: jobName || `Map ${new URL(url).hostname}`,
