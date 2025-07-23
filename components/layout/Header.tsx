@@ -1,10 +1,10 @@
 "use client"
 
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
-import Flame from "@/components/flame"
 
 interface HeaderProps {
   apiEndpoint: string
@@ -18,7 +18,13 @@ export function Header({ apiEndpoint, onApiEndpointChange, runningJobsCount }: H
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Flame className="h-6 w-6 text-primary" />
+            <Image 
+              src="/firecrawl-webui.png" 
+              alt="Firecrawl WebUI Logo" 
+              width={48} 
+              height={48}
+              className="h-10 w-10"
+            />
             <h1 className="text-2xl font-bold">Firecrawl WebUI</h1>
           </div>
           <div className="flex items-center space-x-4">
