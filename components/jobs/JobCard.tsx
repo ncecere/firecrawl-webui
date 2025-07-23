@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Job } from "@/types/jobs"
 import { StatusBadge } from "@/components/shared/StatusBadge"
@@ -12,7 +13,11 @@ interface JobCardProps {
   onRetry: (jobId: string) => void
 }
 
-export function JobCard({ job, onViewDetails, onRetry }: JobCardProps) {
+/**
+ * JobCard component displays individual job information with actions
+ * Memoized to prevent unnecessary re-renders when parent updates
+ */
+export const JobCard = React.memo<JobCardProps>(({ job, onViewDetails, onRetry }) => {
   return (
     <div className="flex items-center justify-between p-3 border rounded-lg">
       <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -41,4 +46,6 @@ export function JobCard({ job, onViewDetails, onRetry }: JobCardProps) {
       />
     </div>
   )
-}
+})
+
+JobCard.displayName = 'JobCard'

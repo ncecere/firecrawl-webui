@@ -65,8 +65,8 @@ export interface BaseJob {
   status: JobStatus
   createdAt: string
   config: JobConfig
-  data?: any[]
-  error?: string
+  data?: any[] | undefined
+  error?: string | undefined
 }
 
 // Specific job types
@@ -111,8 +111,8 @@ export interface CreateJobPayload {
 // Job update payload
 export interface JobUpdatePayload {
   status?: JobStatus
-  data?: any[]
-  error?: string
+  data?: any[] | undefined
+  error?: string | undefined
 }
 
 // Job statistics

@@ -1,11 +1,19 @@
 import { Job, JobStatus, JobStats } from "@/types/jobs"
 
-// Generate unique job ID
+/**
+ * Generate a unique job ID with timestamp and random suffix
+ * @param type - The job type (scrape, crawl, map, batch)
+ * @returns A unique job identifier string
+ */
 export const generateJobId = (type: string): string => {
   return `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
 
-// Get status icon component name
+/**
+ * Get the appropriate Lucide icon name for a job status
+ * @param status - The job status
+ * @returns The icon component name as a string
+ */
 export const getStatusIcon = (status: JobStatus): string => {
   switch (status) {
     case "pending":
@@ -21,7 +29,11 @@ export const getStatusIcon = (status: JobStatus): string => {
   }
 }
 
-// Get status color classes
+/**
+ * Get Tailwind CSS color classes for a job status
+ * @param status - The job status
+ * @returns CSS color class string
+ */
 export const getStatusColor = (status: JobStatus): string => {
   switch (status) {
     case "pending":
@@ -69,7 +81,11 @@ export const getStatusBadgeClasses = (status: JobStatus): string => {
   }
 }
 
-// Calculate job statistics
+/**
+ * Calculate statistics for a collection of jobs
+ * @param jobs - Array of jobs to analyze
+ * @returns JobStats object with counts for each status
+ */
 export const calculateJobStats = (jobs: Job[]): JobStats => {
   return jobs.reduce(
     (stats, job) => {

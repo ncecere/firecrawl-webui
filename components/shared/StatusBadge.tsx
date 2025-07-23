@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Clock, CheckCircle, XCircle } from "lucide-react"
 import { JobStatus } from "@/types/jobs"
@@ -11,7 +12,11 @@ interface StatusBadgeProps {
   className?: string
 }
 
-export function StatusBadge({ status, showIcon = true, className }: StatusBadgeProps) {
+/**
+ * StatusBadge component displays job status with icon and styling
+ * Memoized to prevent unnecessary re-renders
+ */
+export const StatusBadge = React.memo<StatusBadgeProps>(({ status, showIcon = true, className }) => {
   const getStatusIcon = () => {
     switch (status) {
       case "pending":
@@ -38,4 +43,6 @@ export function StatusBadge({ status, showIcon = true, className }: StatusBadgeP
       </span>
     </Badge>
   )
-}
+})
+
+StatusBadge.displayName = 'StatusBadge'
