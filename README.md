@@ -57,6 +57,52 @@ This application follows a clean, modular architecture:
 
 ## 📦 Installation
 
+### Option 1: Docker (Recommended)
+
+The easiest way to run Firecrawl Frontend is using Docker:
+
+#### Development with Docker
+```bash
+# Clone the repository
+git clone <repository-url>
+cd firecrawl-frontend
+
+# Copy environment file and customize if needed
+cp .env.example .env.local
+
+# Start development environment
+docker-compose up --build
+
+# Or run in background
+docker-compose up -d --build
+```
+
+#### Production with Docker
+```bash
+# Build and run production container
+docker-compose -f docker-compose.prod.yml up --build
+
+# Or with custom environment variables
+NEXT_PUBLIC_DEFAULT_API_ENDPOINT=https://your-api.com docker-compose -f docker-compose.prod.yml up --build
+```
+
+#### Docker Commands
+```bash
+# View logs
+docker-compose logs -f firecrawl-frontend
+
+# Stop containers
+docker-compose down
+
+# Rebuild containers
+docker-compose up --build --force-recreate
+
+# Run with nginx (production)
+docker-compose -f docker-compose.prod.yml --profile nginx up
+```
+
+### Option 2: Local Development
+
 1. **Clone the repository**
    ```bash
    git clone <repository-url>

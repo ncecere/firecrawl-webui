@@ -280,12 +280,73 @@ npm run lint         # Run ESLint
 npm run type-check   # Run TypeScript compiler
 ```
 
+### Docker Development
+
+#### Development with Docker
+```bash
+# Start development environment with hot reloading
+docker-compose up --build
+
+# Run in background
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f firecrawl-frontend
+
+# Stop containers
+docker-compose down
+```
+
+#### Production with Docker
+```bash
+# Build and run production container
+docker-compose -f docker-compose.prod.yml up --build
+
+# With custom environment variables
+NEXT_PUBLIC_DEFAULT_API_ENDPOINT=https://your-api.com docker-compose -f docker-compose.prod.yml up --build
+
+# Run with nginx reverse proxy
+docker-compose -f docker-compose.prod.yml --profile nginx up
+```
+
+#### Docker Architecture
+
+**Multi-stage Dockerfile:**
+- **Stage 1 (deps)**: Install dependencies with pnpm
+- **Stage 2 (builder)**: Build the Next.js application
+- **Stage 3 (runner)**: Lightweight production runtime
+
+**Key Features:**
+- Non-root user for security
+- Health checks for monitoring
+- Optimized layer caching
+- Standalone output for minimal image size
+
+#### Docker Commands Reference
+```bash
+# Rebuild containers from scratch
+docker-compose up --build --force-recreate
+
+# Remove all containers and volumes
+docker-compose down -v
+
+# Build specific service
+docker-compose build firecrawl-frontend
+
+# Run commands inside container
+docker-compose exec firecrawl-frontend npm run lint
+
+# Check container health
+docker-compose ps
+```
+
 ### Production Considerations
 
 1. **Environment Variables**: Set production environment variables
 2. **Error Monitoring**: Configure error tracking
 3. **Performance Monitoring**: Set up performance metrics
 4. **Security**: Review security headers and configurations
+5. **Docker Security**: Use non-root users, read-only filesystems, and minimal capabilities
 
 ## 🤝 Contributing
 
