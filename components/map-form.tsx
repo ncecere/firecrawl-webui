@@ -138,15 +138,6 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
             <Zap className="h-4 w-4 text-yellow-500" />
           </CardTitle>
           <CardDescription>Input a website and get all the URLs on the website – extremely fast!</CardDescription>
-
-          <div className="text-sm text-muted-foreground mt-2">
-            <ul className="list-disc list-inside space-y-1">
-              <li>Prompt users to choose which links to scrape</li>
-              <li>Quickly discover all links on a website</li>
-              <li>Find pages related to specific topics</li>
-              <li>Identify specific pages to scrape</li>
-            </ul>
-          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

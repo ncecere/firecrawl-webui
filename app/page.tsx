@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Globe, Link, Layers, Map, Eye, Download, RefreshCw, Archive } from "lucide-react"
+import { Loader2, Globe, Link, Layers, Map, Eye, Download, RefreshCw, Archive, Copy } from "lucide-react"
 import ScrapeCrawlForm from "@/components/scrape-crawl-form"
 import MapForm from "@/components/map-form"
+import Hono from "@/components/flame"
 import JSZip from "jszip"
 import { saveAs } from "file-saver"
 
@@ -326,6 +327,36 @@ export default function FirecrawlFrontend() {
     }
   }
 
+  const copyMapResults = async (job: ScrapingJob) => {
+    if (!job.data || job.data.length === 0) return
+
+    try {
+      // For map jobs, data is an array of URL strings
+      const urlList = job.data.join('\n')
+      await navigator.clipboard.writeText(urlList)
+      
+      // Show a brief success message (you could replace this with a toast notification)
+      const button = document.activeElement as HTMLButtonElement
+      const originalTitle = button?.title || ''
+      if (button) {
+        button.title = 'Copied!'
+        setTimeout(() => {
+          button.title = originalTitle
+        }, 2000)
+      }
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+      // Fallback: create a text area and select the text for manual copying
+      const textArea = document.createElement('textarea')
+      textArea.value = job.data.join('\n')
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      alert('URLs copied to clipboard!')
+    }
+  }
+
   const selectedJobData = selectedJob ? jobs.find((job) => job.id === selectedJob) : null
 
   return (
@@ -334,8 +365,8 @@ export default function FirecrawlFrontend() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Globe className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold">Firecrawl Web Scraper</h1>
+              <Hono className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl font-bold">Firecrawl WebUI</h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -480,6 +511,11 @@ export default function FirecrawlFrontend() {
                               <Button size="sm" variant="ghost" onClick={() => downloadResults(job)} title="Download JSON">
                                 <Download className="h-3 w-3" />
                               </Button>
+                              {job.type === "map" && (
+                                <Button size="sm" variant="ghost" onClick={() => copyMapResults(job)} title="Copy URL List">
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              )}
                               {(job.type === "scrape" || job.type === "crawl" || job.type === "batch") && job.config.formats && (
                                 <Button size="sm" variant="ghost" onClick={() => downloadZipFiles(job)} title="Download ZIP">
                                   <Archive className="h-3 w-3" />
@@ -523,24 +559,48 @@ export default function FirecrawlFrontend() {
 
                   {selectedJobData.data && selectedJobData.data.length > 0 && (
                     <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {selectedJobData.data.slice(0, 5).map((item: any, index: number) => (
-                        <div key={index} className="p-3 border rounded-lg">
-                          <div className="text-sm font-medium truncate">{item.title || "No title"}</div>
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline truncate block"
-                          >
-                            {item.url}
-                          </a>
-                          {item.markdown && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {item.markdown.substring(0, 100)}...
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                      {selectedJobData.data.slice(0, 5).map((item: any, index: number) => {
+                        // Handle map results (which are just URL strings)
+                        if (selectedJobData.type === "map" && typeof item === "string") {
+                          const url = item;
+                          const urlObj = new URL(url);
+                          const displayTitle = urlObj.pathname === "/" ? urlObj.hostname : urlObj.pathname.split('/').filter(Boolean).pop() || urlObj.hostname;
+                          
+                          return (
+                            <div key={index} className="p-3 border rounded-lg">
+                              <div className="text-sm font-medium truncate">{displayTitle}</div>
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline truncate block"
+                              >
+                                {url}
+                              </a>
+                            </div>
+                          );
+                        }
+                        
+                        // Handle scrape/crawl/batch results (which are objects with metadata)
+                        return (
+                          <div key={index} className="p-3 border rounded-lg">
+                            <div className="text-sm font-medium truncate">{item.metadata?.title || item.title || "No title"}</div>
+                            <a
+                              href={item.metadata?.sourceURL || item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline truncate block"
+                            >
+                              {item.metadata?.sourceURL || item.url}
+                            </a>
+                            {item.markdown && (
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {item.markdown.substring(0, 100)}...
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                       {selectedJobData.data.length > 5 && (
                         <p className="text-xs text-muted-foreground text-center">
                           And {selectedJobData.data.length - 5} more items...
