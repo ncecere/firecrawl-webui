@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
+import { SchedulerInitializer } from '@/components/startup/SchedulerInitializer'
 
 export const metadata: Metadata = {
   title: 'Firecrawl WebUI',
@@ -27,6 +28,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <SchedulerInitializer />
           {children}
         </ThemeProvider>
       </body>

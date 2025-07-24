@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Globe, Link, Layers, Map } from "lucide-react"
+import { Globe, Link, Layers, Map, Clock } from "lucide-react"
 import ScrapeCrawlForm from "@/components/scrape-crawl-form"
 import MapForm from "@/components/map-form"
+import { ScheduleTab } from "@/components/schedules/ScheduleTab"
 import { Header } from "@/components/layout/Header"
 import { StatsCards } from "@/components/layout/StatsCards"
 import { JobList } from "@/components/jobs/JobList"
@@ -56,7 +57,7 @@ export default function FirecrawlFrontend() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="scrape" className="flex items-center space-x-2">
                   <Globe className="h-4 w-4" />
                   <span>Single Scrape</span>
@@ -72,6 +73,10 @@ export default function FirecrawlFrontend() {
                 <TabsTrigger value="map" className="flex items-center space-x-2">
                   <Map className="h-4 w-4" />
                   <span>Map</span>
+                </TabsTrigger>
+                <TabsTrigger value="schedules" className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Schedules</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -89,6 +94,10 @@ export default function FirecrawlFrontend() {
 
               <TabsContent value="map">
                 <MapForm apiEndpoint={apiEndpoint} onJobCreate={handleJobCreate} />
+              </TabsContent>
+
+              <TabsContent value="schedules">
+                <ScheduleTab apiEndpoint={apiEndpoint} />
               </TabsContent>
             </Tabs>
           </div>
