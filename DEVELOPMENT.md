@@ -19,16 +19,25 @@ This guide provides detailed information for developers working on the Firecrawl
 │   ├── page.tsx           # Main application page
 │   ├── layout.tsx         # Root layout
 │   └── api/               # API routes
+│       ├── firecrawl/     # Original Firecrawl API proxy
+│       ├── schedules/     # 🆕 Schedule management endpoints
+│       ├── scheduler/     # 🆕 Scheduler status endpoints
+│       └── startup/       # 🆕 System initialization endpoint
 ├── components/            # React components
 │   ├── shared/            # Reusable components
 │   ├── layout/            # Layout components
 │   ├── jobs/              # Job management components
+│   ├── schedules/         # 🆕 Scheduling system components
+│   ├── startup/           # 🆕 System initialization components
 │   └── ui/                # Base UI components (shadcn/ui)
 ├── hooks/                 # Custom React hooks
 ├── lib/                   # Utility functions
+│   ├── db/                # 🆕 Database layer with SQLite and Drizzle ORM
+│   └── scheduler/         # 🆕 Background job scheduler
 ├── types/                 # TypeScript type definitions
 ├── constants/             # Application constants
-└── config/                # Configuration files
+├── config/                # Configuration files
+└── data/                  # 🆕 SQLite database files
 ```
 
 ## 🔧 Development Setup
