@@ -132,6 +132,44 @@ docker-compose up --build --force-recreate
 docker-compose -f docker-compose.prod.yml --profile nginx up
 ```
 
+#### Using Published Container Images
+
+Pre-built container images are automatically published to GitHub Container Registry when new versions are tagged:
+
+```bash
+# Pull and run the latest version
+docker run -p 3000:3000 ghcr.io/ncecere/firecrawl-webui:latest
+
+# Pull and run a specific version
+docker run -p 3000:3000 ghcr.io/ncecere/firecrawl-webui:v1.0.0
+
+# Use in docker-compose with published image
+# Update docker-compose.yml to use: ghcr.io/ncecere/firecrawl-webui:latest
+```
+
+#### Container Publishing Workflow
+
+The project includes automated container publishing via GitHub Actions:
+
+- **Trigger**: Pushing a version tag (e.g., `v1.0.0`, `v2.1.3`)
+- **Registry**: GitHub Container Registry (`ghcr.io`)
+- **Tags Created**:
+  - Exact tag match: `ghcr.io/ncecere/firecrawl-webui:v1.0.0`
+  - Semantic version: `ghcr.io/ncecere/firecrawl-webui:1.0.0`
+  - Major.minor: `ghcr.io/ncecere/firecrawl-webui:1.0`
+  - Major: `ghcr.io/ncecere/firecrawl-webui:1`
+  - Latest: `ghcr.io/ncecere/firecrawl-webui:latest`
+- **Platforms**: Multi-architecture support (linux/amd64, linux/arm64)
+
+To publish a new version:
+```bash
+# Create and push a version tag
+git tag v1.0.0
+git push origin v1.0.0
+
+# The GitHub Action will automatically build and publish the container
+```
+
 ### Option 2: Local Development
 
 1. **Clone the repository**
