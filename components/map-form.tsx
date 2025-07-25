@@ -259,21 +259,6 @@ export default function MapForm({ apiEndpoint, onJobCreate }: MapFormProps) {
           </form>
         </CardContent>
       </Card>
-
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start space-x-3">
-            <Zap className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div>
-              <h4 className="font-semibold text-blue-900">Lightning Fast</h4>
-              <p className="text-sm text-blue-700">
-                The map endpoint is optimized for speed and can quickly discover all URLs on a website without scraping
-                the actual content. Perfect for reconnaissance and planning your scraping strategy.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
