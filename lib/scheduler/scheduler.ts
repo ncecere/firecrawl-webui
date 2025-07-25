@@ -114,6 +114,16 @@ class SchedulerService {
     try {
       console.log(`Starting scheduled execution of job ${job.name} (${job.id})`)
       
+      // Check if the job still exists in the database before executing
+      const activeJobs = await getActiveScheduledJobs()
+      const currentJob = activeJobs.find(j => j.id === job.id)
+      
+      if (!currentJob) {
+        console.log(`Job ${job.name} (${job.id}) no longer exists, unscheduling...`)
+        this.unscheduleJob(job.id)
+        return
+      }
+      
       // Create job run record
       const jobRun = await createJobRun({
         id: runId,
@@ -336,6 +346,22 @@ class SchedulerService {
       
       throw error
     }
+  }
+
+  async reload() {
+    console.log('Reloading scheduler...')
+    
+    // Stop all current tasks
+    for (const [jobId, task] of this.tasks) {
+      task.stop()
+      task.destroy()
+    }
+    this.tasks.clear()
+    
+    // Reload jobs from database
+    await this.loadScheduledJobs()
+    
+    console.log('Scheduler reloaded successfully')
   }
 
   getStatus() {
