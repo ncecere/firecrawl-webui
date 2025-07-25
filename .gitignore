@@ -27,3 +27,7 @@ yarn-error.log*
 next-env.d.ts
 
 .DS_Store
+
+*.db
+*.db-shm
+*.db-wal
