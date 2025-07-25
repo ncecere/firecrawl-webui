@@ -59,6 +59,22 @@ export async function getJobRuns(scheduledJobId: string, limit = 50): Promise<Jo
     .limit(limit)
 }
 
+// Enhanced version that includes scheduled job information
+export async function getJobRunsWithScheduleInfo(scheduledJobId: string, limit = 50): Promise<(JobRun & { scheduledJob: ScheduledJob })[]> {
+  const runs = await db
+    .select({
+      run: jobRuns,
+      scheduledJob: scheduledJobs,
+    })
+    .from(jobRuns)
+    .innerJoin(scheduledJobs, eq(jobRuns.scheduledJobId, scheduledJobs.id))
+    .where(eq(jobRuns.scheduledJobId, scheduledJobId))
+    .orderBy(desc(jobRuns.startedAt))
+    .limit(limit)
+  
+  return runs.map(r => ({ ...r.run, scheduledJob: r.scheduledJob }))
+}
+
 export async function getJobRun(id: string): Promise<JobRun | undefined> {
   const [run] = await db.select().from(jobRuns).where(eq(jobRuns.id, id))
   return run

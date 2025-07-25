@@ -10,7 +10,7 @@ import { Calendar, Clock, Download, Eye, AlertCircle, CheckCircle, XCircle } fro
 import { formatDistanceToNow } from 'date-fns'
 import { JobDetails } from '@/components/jobs/JobDetails'
 import { JobActions } from '@/components/jobs/JobActions'
-import type { JobRun } from '@/lib/db/schema'
+import type { JobRun, ScheduledJob } from '@/lib/db/schema'
 
 interface RunHistoryDialogProps {
   open: boolean
@@ -21,6 +21,7 @@ interface RunHistoryDialogProps {
 
 interface JobRunWithData extends Omit<JobRun, 'resultData'> {
   resultData?: any
+  scheduledJob: ScheduledJob
 }
 
 export function RunHistoryDialog({ 
@@ -95,18 +96,54 @@ export function RunHistoryDialog({
 
   const convertRunToJob = (run: JobRunWithData) => {
     // Convert job run to the Job format expected by JobDetails and JobActions
-    return {
+    const scheduledJob = run.scheduledJob
+    const jobConfig = scheduledJob.jobConfig as any
+    
+    const baseJobData = {
       id: run.id,
-      type: 'scrape' as const,
       status: run.status as 'pending' | 'running' | 'completed' | 'failed',
       data: run.resultData || [],
       error: run.errorMessage || undefined,
       createdAt: run.startedAt,
       config: {
-        name: 'Scheduled Job Result',
-        formats: ['markdown'],
+        name: scheduledJob.name,
+        formats: jobConfig.formats || ['markdown'],
+        ...jobConfig, // Include all original job config
       },
-      url: 'N/A',
+    }
+
+    // Return properly typed job based on job type
+    if (scheduledJob.jobType === 'batch') {
+      return {
+        ...baseJobData,
+        type: 'batch' as const,
+        urls: scheduledJob.urls ? JSON.parse(scheduledJob.urls as string) : [],
+      }
+    } else if (scheduledJob.jobType === 'scrape') {
+      return {
+        ...baseJobData,
+        type: 'scrape' as const,
+        url: scheduledJob.url || '',
+      }
+    } else if (scheduledJob.jobType === 'crawl') {
+      return {
+        ...baseJobData,
+        type: 'crawl' as const,
+        url: scheduledJob.url || '',
+      }
+    } else if (scheduledJob.jobType === 'map') {
+      return {
+        ...baseJobData,
+        type: 'map' as const,
+        url: scheduledJob.url || '',
+      }
+    } else {
+      // Fallback to scrape type
+      return {
+        ...baseJobData,
+        type: 'scrape' as const,
+        url: scheduledJob.url || '',
+      }
     }
   }
 

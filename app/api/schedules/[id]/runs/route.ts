@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getJobRuns } from '@/lib/db/queries'
+import { getJobRunsWithScheduleInfo } from '@/lib/db/queries'
 import { initializeDatabase } from '@/lib/db/connection'
 
 // Initialize database on first request
@@ -24,7 +24,7 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
     
-    const runs = await getJobRuns(id, limit)
+    const runs = await getJobRunsWithScheduleInfo(id, limit)
     
     return NextResponse.json({ success: true, runs })
   } catch (error) {
