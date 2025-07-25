@@ -26,7 +26,7 @@ type JobType = 'scrape' | 'crawl' | 'batch' | 'map'
 type ScheduleType = 'interval' | 'hourly' | 'daily' | 'weekly' | 'monthly'
 
 interface ScheduleConfig {
-  interval?: number
+  interval?: number | undefined
   unit?: 'minutes' | 'hours' | 'days'
   time?: string
   days?: number[]
@@ -424,11 +424,15 @@ export function CreateScheduleDialog({ open, onOpenChange, onScheduleCreated, ap
             <Input
               type="number"
               min="1"
-              value={scheduleConfig.interval || 1}
-              onChange={(e) => setScheduleConfig({
-                ...scheduleConfig,
-                interval: parseInt(e.target.value) || 1
-              })}
+              value={scheduleConfig.interval || ''}
+              onChange={(e) => {
+                const value = e.target.value
+                setScheduleConfig({
+                  ...scheduleConfig,
+                  interval: value === '' ? undefined : parseInt(value) || undefined
+                })
+              }}
+              placeholder="Enter interval"
               className="mt-1"
             />
           </div>

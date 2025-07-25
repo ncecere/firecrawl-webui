@@ -193,8 +193,12 @@ export function EditScheduleDialog({
                 id="interval"
                 type="number"
                 min="1"
-                value={formData.scheduleConfig.interval || 1}
-                onChange={(e) => updateScheduleConfig('interval', parseInt(e.target.value))}
+                value={formData.scheduleConfig.interval || ''}
+                onChange={(e) => {
+                  const value = e.target.value
+                  updateScheduleConfig('interval', value === '' ? undefined : parseInt(value) || undefined)
+                }}
+                placeholder="Enter interval"
               />
             </div>
             <div>
